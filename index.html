@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Breadfully - Sugar-Free Pastries</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 font-sans">
+  <div class="max-w-4xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-4 text-center">Breadfully</h1>
+    <p class="text-center mb-8 text-gray-700">Delicious sugar-free banana loaves, muffins, and cookies — order now, pay via GCash or bank transfer!</p>
+    <div id="product-list" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+
+    <h2 class="text-2xl font-semibold mt-10 mb-2">Your Cart</h2>
+    <div id="cart" class="bg-white p-4 rounded shadow">
+      <p id="cart-empty" class="text-gray-500">Your cart is empty.</p>
+      <ul id="cart-items" class="mb-4"></ul>
+      <p id="cart-total" class="font-bold"></p>
+    </div>
+  </div>
+
+  <script>
+    const sheetURL = 'https://opensheet.elk.sh/https://docs.google.com/spreadsheets/d/e/2PACX-1vRg8c_Tu_1Vks-K5sgvxdcX91BfHl3xDdJJw_etZlaUbEoKwy39EZeg7fbWYgM8RmOZjpU8R4FSPhMo/pubhtml/products';
+
+    async function fetchProducts() {
+      const res = await fetch(sheetURL);
+      const products = await res.json();
+      renderProducts(products);
+    }
+
+    function renderProducts(products) {
+      const container = document.getElementById('product-list');
+      container.innerHTML = '';
+      products.forEach(product => {
+        if (product.InStock.toLowerCase() === 'yes') {
+          const div = document.createElement('div');
+          div.className = 'bg-white p-4 rounded shadow';
+          div.innerHTML = `
+            <img src="${product.ImageURL}" alt="${product.Product}" class="w-full h-40 object-cover rounded mb-2"/>
+            <h3 class="font-semibold text-lg">${product.Product}</h3>
+            <p class="text-gray-600">₱${product.Price}</p>
+            <button class="mt-2 bg-blue-600 text-white px-4 py-1 rounded" onclick='addToCart("${product.Product}", ${product.Price})'>Add to Cart</button>
+          `;
+          container.appendChild(div);
+        }
+      });
+    }
+
+    function addToCart(name, price) {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const existing = cart.find(item => item.name === name);
+      if (existing) {
+        existing.qty++;
+      } else {
+        cart.push({ name, price, qty: 1 });
+      }
+      localStorage.setItem('cart', JSON.stringify(cart));
+      renderCart();
+    }
+
+    function renderCart() {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const cartList = document.getElementById('cart-items');
+      const cartTotal = document.getElementById('cart-total');
+      const cartEmpty = document.getElementById('cart-empty');
+      cartList.innerHTML = '';
+      let total = 0;
+
+      if (cart.length === 0) {
+        cartEmpty.style.display = 'block';
+        cartTotal.textContent = '';
+        return;
+      }
+
+      cartEmpty.style.display = 'none';
+      cart.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = `${item.qty}x ${item.name} - ₱${item.price * item.qty}`;
+        cartList.appendChild(li);
+        total += item.price * item.qty;
+      });
+      cartTotal.textContent = `Total: ₱${total}`;
+    }
+
+    fetchProducts();
+    renderCart();
+  </script>
+</body>
+</html>
